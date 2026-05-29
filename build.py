@@ -344,7 +344,7 @@ def collect_all_item_ids(out_dir):
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--top', type=int, default=100, help='target sample size per spec')
-    ap.add_argument('--season', default='season-tww-3')
+    ap.add_argument('--season', default='season-mn-1')
     ap.add_argument('--region', default='world')
     ap.add_argument('--output', default='data', help='output directory')
     ap.add_argument('--spec', action='append', default=[],
@@ -394,6 +394,30 @@ def main():
         except Exception as e:
             print(f'  ERROR: {e}', file=sys.stderr)
 
+    # Rebuild index.json by scanning data dir, so partial runs (e.g. --spec X)
+    # don't shrink the index. Specs not just-built keep their previous entry.
+    just_built = {(s['classSlug'], s['specSlug']): s for s in summary['specs']}
+    all_specs = []
+    for path in sorted(out_dir.glob('*__*.json')):
+        cls = path.stem.split('__')[0]
+        spec = path.stem.split('__', 1)[1] if '__' in path.stem else ''
+        if not spec:
+            continue
+        if (cls, spec) in just_built:
+            all_specs.append(just_built[(cls, spec)])
+        else:
+            d = read_json(path)
+            if d:
+                all_specs.append({
+                    'classSlug': d.get('classSlug', cls),
+                    'specSlug':  d.get('specSlug', spec),
+                    'role':      d.get('role', ''),
+                    'file':      path.name,
+                    'sampleSize': d.get('sampleSize', 0),
+                    'fetchedAt': d.get('fetchedAt', 0),
+                    'season':    d.get('season', ''),  # so the UI can flag stale-season entries
+                })
+    summary['specs'] = all_specs
     write_json(out_dir / 'index.json', summary)
     print(f'\nwrote {out_dir / "index.json"} (covers {len(summary["specs"])} specs)')
 
