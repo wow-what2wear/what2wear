@@ -26,7 +26,7 @@ from pathlib import Path
 
 CLASSES = [
     ('death-knight', [('blood', 'tank'), ('frost', 'dps'), ('unholy', 'dps')]),
-    ('demon-hunter', [('havoc', 'dps'), ('vengeance', 'tank')]),
+    ('demon-hunter', [('havoc', 'dps'), ('vengeance', 'tank'), ('devourer', 'dps')]),
     ('druid',        [('balance', 'dps'), ('feral', 'dps'), ('guardian', 'tank'), ('restoration', 'healer')]),
     ('evoker',       [('devastation', 'dps'), ('preservation', 'healer'), ('augmentation', 'dps')]),
     ('hunter',       [('beast-mastery', 'dps'), ('marksmanship', 'dps'), ('survival', 'dps')]),
