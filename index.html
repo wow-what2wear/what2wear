@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title data-i18n="title">WhatToWear · Top Player Gear</title>
+<style>
+  :root {
+    --bg: #14171c;
+    --panel: #1c2128;
+    --border: #2d343d;
+    --text: #e6e6e6;
+    --muted: #8a93a0;
+    --accent: #ffb648;
+    --bar: #3a7afe;
+    --row-hover: #232a33;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", "Microsoft YaHei", Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  header {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  h1 { font-size: 16px; margin: 0; color: var(--accent); font-weight: 600; }
+  .header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 10px; }
+  .lang-toggle { display: flex; gap: 0; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+  .lang-toggle button {
+    background: transparent;
+    color: var(--muted);
+    border: none;
+    border-radius: 0;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .lang-toggle button.active { background: var(--accent); color: #111; }
+  .lang-toggle button:not(.active):hover { background: var(--row-hover); color: var(--text); }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .controls label { color: var(--muted); margin-right: 4px; }
+  select, button {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  button {
+    cursor: pointer;
+    background: var(--accent);
+    color: #111;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+  button:hover:not(:disabled) { filter: brightness(1.1); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  button.secondary { background: transparent; color: var(--muted); border-color: var(--border); font-weight: normal; }
+  .status {
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 12px;
+    min-height: 18px;
+  }
+  .progress {
+    margin-top: 6px;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    background: var(--bar);
+    width: 0%;
+    transition: width 0.2s;
+  }
+  main { padding: 16px 20px 60px; max-width: 1200px; margin: 0 auto; }
+  .meta {
+    color: var(--muted);
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+  .slot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+    gap: 14px;
+  }
+  .slot {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+  }
+  .slot-title {
+    font-size: 13px;
+    color: var(--accent);
+    margin: 0 0 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+  }
+  .slot-title .count { color: var(--muted); font-weight: normal; font-size: 11px; margin-left: 6px; text-transform: none; letter-spacing: 0; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 4px 6px; vertical-align: middle; }
+  tr:hover { background: var(--row-hover); }
+  .icon {
+    width: 28px; height: 28px; border-radius: 4px;
+    border: 1px solid var(--border);
+    display: block;
+  }
+  .item-name { color: var(--text); text-decoration: none; }
+  .item-name:hover { color: var(--accent); }
+  .ilvl { color: var(--muted); font-size: 11px; margin-left: 4px; }
+  .variant {
+    color: var(--muted);
+    font-size: 10px;
+    margin-left: 4px;
+    padding: 1px 4px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-family: ui-monospace, Consolas, monospace;
+    cursor: help;
+  }
+  .pct {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .pct .raw { color: var(--muted); font-weight: normal; font-size: 11px; margin-left: 4px; }
+  .pct-bar-cell { width: 80px; padding-right: 0; }
+  .pct-bar-bg { background: var(--border); border-radius: 2px; height: 6px; overflow: hidden; }
+  .pct-bar-fill { background: var(--bar); height: 100%; }
+  .empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 60px 20px;
+    font-size: 13px;
+  }
+  .error { color: #ff6b6b; margin-top: 6px; font-size: 12px; }
+  option:disabled { color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-row">
+    <h1 data-i18n="h1">WhatToWear · M+ Top Player Gear Frequencies</h1>
+    <div class="lang-toggle">
+      <button id="btn-lang-cn" data-lang="cn">中</button>
+      <button id="btn-lang-en" data-lang="en">EN</button>
+    </div>
+  </div>
+  <div class="controls">
+    <label data-i18n="label.class">Class</label><select id="sel-class"></select>
+    <label data-i18n="label.spec">Spec</label><select id="sel-spec"></select>
+    <label data-i18n="label.group">Group by</label><select id="sel-mode" data-i18n-title="tooltip.mode" title="Merge by item: variants (sockets / tertiaries / upgrade track) collapse into one row. Distinguish variants: each variant as its own row.">
+      <option value="byItem" selected data-i18n="opt.byItem">Merge by item</option>
+      <option value="byVariant" data-i18n="opt.byVariant">Distinguish variants</option>
+    </select>
+  </div>
+  <div class="status" id="status"></div>
+</header>
+
+<main>
+  <div class="meta" id="meta"></div>
+  <div id="results" class="empty" data-i18n="initial.empty">Loading ...</div>
+</main>
+
+<script>
+// ============================================================
+// 职业 / 专精数据
+// ============================================================
+// name: { en, cn } —— 通过 nameOf(item, lang) 取
+const CLASSES = [
+  { slug: 'death-knight',  name: { en: 'Death Knight', cn: '死亡骑士' }, specs: [
+    { slug: 'blood',         name: { en: 'Blood',         cn: '鲜血' },     role: 'tank' },
+    { slug: 'frost',         name: { en: 'Frost',         cn: '冰霜' },     role: 'dps'  },
+    { slug: 'unholy',        name: { en: 'Unholy',        cn: '邪恶' },     role: 'dps'  },
+  ]},
+  { slug: 'demon-hunter',  name: { en: 'Demon Hunter',  cn: '恶魔猎手' }, specs: [
+    { slug: 'havoc',         name: { en: 'Havoc',         cn: '浩劫' },     role: 'dps'  },
+    { slug: 'vengeance',     name: { en: 'Vengeance',     cn: '复仇' },     role: 'tank' },
+  ]},
+  { slug: 'druid',         name: { en: 'Druid',         cn: '德鲁伊' },   specs: [
+    { slug: 'balance',       name: { en: 'Balance',       cn: '平衡' },     role: 'dps'    },
+    { slug: 'feral',         name: { en: 'Feral',         cn: '野性' },     role: 'dps'    },
+    { slug: 'guardian',      name: { en: 'Guardian',      cn: '守护' },     role: 'tank'   },
+    { slug: 'restoration',   name: { en: 'Restoration',   cn: '恢复' },     role: 'healer' },
+  ]},
+  { slug: 'evoker',        name: { en: 'Evoker',        cn: '唤魔师' },   specs: [
+    { slug: 'devastation',   name: { en: 'Devastation',   cn: '湮灭' },     role: 'dps'    },
+    { slug: 'preservation',  name: { en: 'Preservation',  cn: '恩护' },     role: 'healer' },
+    { slug: 'augmentation',  name: { en: 'Augmentation',  cn: '增辉' },     role: 'dps'    },
+  ]},
+  { slug: 'hunter',        name: { en: 'Hunter',        cn: '猎人' },     specs: [
+    { slug: 'beast-mastery', name: { en: 'Beast Mastery', cn: '兽王' },     role: 'dps' },
+    { slug: 'marksmanship',  name: { en: 'Marksmanship',  cn: '射击' },     role: 'dps' },
+    { slug: 'survival',      name: { en: 'Survival',      cn: '生存' },     role: 'dps' },
+  ]},
+  { slug: 'mage',          name: { en: 'Mage',          cn: '法师' },     specs: [
+    { slug: 'arcane',        name: { en: 'Arcane',        cn: '奥术' },     role: 'dps' },
+    { slug: 'fire',          name: { en: 'Fire',          cn: '火焰' },     role: 'dps' },
+    { slug: 'frost',         name: { en: 'Frost',         cn: '冰霜' },     role: 'dps' },
+  ]},
+  { slug: 'monk',          name: { en: 'Monk',          cn: '武僧' },     specs: [
+    { slug: 'brewmaster',    name: { en: 'Brewmaster',    cn: '酒仙' },     role: 'tank'   },
+    { slug: 'mistweaver',    name: { en: 'Mistweaver',    cn: '织雾' },     role: 'healer' },
+    { slug: 'windwalker',    name: { en: 'Windwalker',    cn: '踏风' },     role: 'dps'    },
+  ]},
+  { slug: 'paladin',       name: { en: 'Paladin',       cn: '圣骑士' },   specs: [
+    { slug: 'holy',          name: { en: 'Holy',          cn: '神圣' },     role: 'healer' },
+    { slug: 'protection',    name: { en: 'Protection',    cn: '防护' },     role: 'tank'   },
+    { slug: 'retribution',   name: { en: 'Retribution',   cn: '惩戒' },     role: 'dps'    },
+  ]},
+  { slug: 'priest',        name: { en: 'Priest',        cn: '牧师' },     specs: [
+    { slug: 'discipline',    name: { en: 'Discipline',    cn: '戒律' },     role: 'healer' },
+    { slug: 'holy',          name: { en: 'Holy',          cn: '神圣' },     role: 'healer' },
+    { slug: 'shadow',        name: { en: 'Shadow',        cn: '暗影' },     role: 'dps'    },
+  ]},
+  { slug: 'rogue',         name: { en: 'Rogue',         cn: '潜行者' },   specs: [
+    { slug: 'assassination', name: { en: 'Assassination', cn: '刺杀' },     role: 'dps' },
+    { slug: 'outlaw',        name: { en: 'Outlaw',        cn: '狂徒' },     role: 'dps' },
+    { slug: 'subtlety',      name: { en: 'Subtlety',      cn: '敏锐' },     role: 'dps' },
+  ]},
+  { slug: 'shaman',        name: { en: 'Shaman',        cn: '萨满' },     specs: [
+    { slug: 'elemental',     name: { en: 'Elemental',     cn: '元素' },     role: 'dps'    },
+    { slug: 'enhancement',   name: { en: 'Enhancement',   cn: '增强' },     role: 'dps'    },
+    { slug: 'restoration',   name: { en: 'Restoration',   cn: '恢复' },     role: 'healer' },
+  ]},
+  { slug: 'warlock',       name: { en: 'Warlock',       cn: '术士' },     specs: [
+    { slug: 'affliction',    name: { en: 'Affliction',    cn: '痛苦' },     role: 'dps' },
+    { slug: 'demonology',    name: { en: 'Demonology',    cn: '恶魔学识' }, role: 'dps' },
+    { slug: 'destruction',   name: { en: 'Destruction',   cn: '毁灭' },     role: 'dps' },
+  ]},
+  { slug: 'warrior',       name: { en: 'Warrior',       cn: '战士' },     specs: [
+    { slug: 'arms',          name: { en: 'Arms',          cn: '武器' },     role: 'dps'  },
+    { slug: 'fury',          name: { en: 'Fury',          cn: '狂怒' },     role: 'dps'  },
+    { slug: 'protection',    name: { en: 'Protection',    cn: '防护' },     role: 'tank' },
+  ]},
+];
+
+// SLOT_ORDER 是"逻辑槽"。戒指/饰品两个物理槽合并成同一逻辑槽，因为顺序无关。
+const SLOT_ORDER = [
+  ['head',     { en: 'Head',     cn: '头部' }],
+  ['neck',     { en: 'Neck',     cn: '颈部' }],
+  ['shoulder', { en: 'Shoulder', cn: '肩部' }],
+  ['back',     { en: 'Back',     cn: '披风' }],
+  ['chest',    { en: 'Chest',    cn: '胸部' }],
+  ['wrist',    { en: 'Wrist',    cn: '手腕' }],
+  ['hands',    { en: 'Hands',    cn: '手部' }],
+  ['waist',    { en: 'Waist',    cn: '腰部' }],
+  ['legs',     { en: 'Legs',     cn: '腿部' }],
+  ['feet',     { en: 'Feet',     cn: '脚部' }],
+  ['fingers',  { en: 'Rings',    cn: '戒指' }],
+  ['trinkets', { en: 'Trinkets', cn: '饰品' }],
+  ['mainhand', { en: 'Main Hand',cn: '主手' }],
+  ['offhand',  { en: 'Off Hand', cn: '副手' }],
+];
+// Raider.IO 返回的物理槽 → 我们的逻辑槽
+const PHYSICAL_TO_LOGICAL = {
+  head: 'head', neck: 'neck', shoulder: 'shoulder', back: 'back',
+  chest: 'chest', wrist: 'wrist', hands: 'hands', waist: 'waist',
+  legs: 'legs', feet: 'feet',
+  finger1: 'fingers', finger2: 'fingers',
+  trinket1: 'trinkets', trinket2: 'trinkets',
+  mainhand: 'mainhand', offhand: 'offhand',
+};
+// 每人在该逻辑槽占的物理槽数；用来计算"X% 的槽位是这件"的分母
+const SLOTS_PER_CHAR = { fingers: 2, trinkets: 2 };
+const slotsPerChar = (slot) => SLOTS_PER_CHAR[slot] || 1;
+
+const DATA_DIR = 'data';
+
+// ============================================================
+// DOM 引用
+// ============================================================
+const $ = (id) => document.getElementById(id);
+const selClass = $('sel-class');
+const selSpec = $('sel-spec');
+const selMode = $('sel-mode');
+const statusEl = $('status');
+const metaEl = $('meta');
+const resultsEl = $('results');
+const btnLangCn = $('btn-lang-cn');
+const btnLangEn = $('btn-lang-en');
+
+// ============================================================
+// i18n
+// ============================================================
+const STRINGS = {
+  en: {
+    'title':              "WhatToWear · Top Player Gear",
+    'h1':                 "WhatToWear · M+ Top Player Gear Frequencies",
+    'label.class':        "Class",
+    'label.spec':         "Spec",
+    'label.group':        "Group by",
+    'opt.byItem':         "Merge by item",
+    'opt.byVariant':      "Distinguish variants",
+    'tooltip.mode':       "Merge by item: variants (sockets / tertiaries / upgrade track) collapse into one row. Distinguish variants: each variant as its own row.",
+    'initial.empty':      "Loading ...",
+    'role.dps':           "DPS",
+    'role.tank':          "Tank",
+    'role.healer':        "Healer",
+    'status.loadIndex':   "Loading data catalog ...",
+    'status.loadSpec':    "Loading {label} ...",
+    'status.noSpecData':  "No data file for this spec. Re-run build.py.",
+    'status.error':       "Error: {m}",
+    'meta.sample':        "Sample: <b>{n}</b> {label} · {region} · {season} · built {ts}{age}",
+    'meta.age':           " ({n}h ago)",
+    'meta.noBuild':       "No data yet. Run <code>python build.py</code> in the project folder.",
+    'slot.noData':        "(no data)",
+    'slot.countItems':    "{n} items / {s} slots",
+    'slot.countVariants': "{n} variants / {s} slots",
+    'slot.overflowItems': "+ {n} more items",
+    'slot.overflowVariants':"+ {n} more variants",
+    'spec.unavailable':   " (no data)",
+    'file.title':         "⚠ You opened the HTML directly (file:// protocol)",
+    'file.body':          "Browsers block fetching local JSON files over <code>file://</code>, so the page can't load the data folder.<br><br><b>Fix</b>: double-click <code>start.cmd</code> in the project folder to start a local server, then open <code>http://localhost:8765/</code>.<br><br>Or deploy <code>index.html</code> + <code>data/</code> to any static host (GitHub Pages, Netlify, S3 ...).",
+  },
+  cn: {
+    'title':              "WhatToWear · 顶尖玩家装备统计",
+    'h1':                 "WhatToWear · M+ 顶尖玩家装备百分比",
+    'label.class':        "职业",
+    'label.spec':         "专精",
+    'label.group':        "聚合",
+    'opt.byItem':         "按物品合并",
+    'opt.byVariant':      "区分版本",
+    'tooltip.mode':       "按物品合并：同一件装备的不同附加属性（插槽 / 三级属性 / 升级轨道）算同一件；区分版本：每种变种单独列。",
+    'initial.empty':      "加载中 ...",
+    'role.dps':           "DPS",
+    'role.tank':          "坦克",
+    'role.healer':        "治疗",
+    'status.loadIndex':   "加载数据目录 ...",
+    'status.loadSpec':    "加载 {label} ...",
+    'status.noSpecData':  "该专精没有数据文件，请重新跑 build.py。",
+    'status.error':       "错误：{m}",
+    'meta.sample':        "样本：<b>{n}</b> 名 {label} · {region} · {season} · 构建于 {ts}{age}",
+    'meta.age':           "（{n} 小时前）",
+    'meta.noBuild':       "尚无数据。请在项目目录运行 <code>python build.py</code>。",
+    'slot.noData':        "(无数据)",
+    'slot.countItems':    "{n} 件物品 / {s} 槽位",
+    'slot.countVariants': "{n} 种变种 / {s} 槽位",
+    'slot.overflowItems': "+ {n} 件其他物品",
+    'slot.overflowVariants':"+ {n} 个其他变种",
+    'spec.unavailable':   " (无数据)",
+    'file.title':         "⚠ 你是双击 HTML 打开的（file:// 协议）",
+    'file.body':          "浏览器禁止 <code>file://</code> 协议读取本地 JSON 文件，所以页面无法加载 data 目录。<br><br><b>修复</b>：双击项目里的 <code>start.cmd</code> 启动本地服务器，再打开 <code>http://localhost:8765/</code>。<br><br>或者把 <code>index.html</code> + <code>data/</code> 部署到任意静态托管（GitHub Pages、Netlify、S3 ...）。",
+  },
+};
+
+let LANG = localStorage.getItem('wtw:lang') || (navigator.language && navigator.language.toLowerCase().startsWith('zh') ? 'cn' : 'en');
+
+function t(key, vars) {
+  let s = STRINGS[LANG][key] ?? STRINGS.en[key] ?? key;
+  if (vars) for (const k in vars) s = s.replaceAll(`{${k}}`, vars[k]);
+  return s;
+}
+function applyI18n() {
+  document.documentElement.lang = LANG === 'cn' ? 'zh-CN' : 'en';
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    el.innerHTML = t(key);
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    el.title = t(el.getAttribute('data-i18n-title'));
+  });
+  btnLangCn.classList.toggle('active', LANG === 'cn');
+  btnLangEn.classList.toggle('active', LANG === 'en');
+}
+function localizedName(obj) { return obj?.[LANG] || obj?.en || ''; }
+function roleLabel(r) { return t(`role.${r}`); }
+
+// ============================================================
+// 中文物品名（构建时已生成 data/names.cn.json）
+// ============================================================
+let cnNames = {};   // { itemId: 中文名 }
+let cnNamesLoaded = false;
+
+async function loadCnNames() {
+  if (cnNamesLoaded) return;
+  try {
+    const r = await fetch(`${DATA_DIR}/names.cn.json`);
+    if (r.ok) cnNames = await r.json();
+  } catch (e) {
+    console.warn('cn names not available', e);
+  }
+  cnNamesLoaded = true;
+}
+
+function itemDisplayName(item) {
+  if (LANG === 'cn' && cnNames[item.item_id]) return cnNames[item.item_id];
+  return item.name || `Item ${item.item_id}`;
+}
+
+// ============================================================
+// 协议检测：file:// 下浏览器禁止 fetch 本地 JSON
+// ============================================================
+const IS_FILE_PROTOCOL = location.protocol === 'file:';
+function showFileProtocolMessage() {
+  resultsEl.className = '';
+  resultsEl.removeAttribute('data-i18n');
+  resultsEl.innerHTML = `
+    <div class="empty error" style="text-align:left; max-width:680px; margin:40px auto; line-height:1.7">
+      <b style="font-size:14px">${t('file.title')}</b><br>
+      ${t('file.body')}
+    </div>`;
+}
+if (IS_FILE_PROTOCOL) {
+  showFileProtocolMessage();
+  window.addEventListener('wtw:langchange', showFileProtocolMessage);
+}
+
+// ============================================================
+// 数据目录（index.json）
+// ============================================================
+let dataIndex = null;       // { season, region, sampleRequested, builtAt, specs: [...] }
+let availableSpecs = new Set();   // "class/spec" 字符串
+
+async function loadIndex() {
+  setStatus(t('status.loadIndex'));
+  const r = await fetch(`${DATA_DIR}/index.json`);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  dataIndex = await r.json();
+  availableSpecs = new Set((dataIndex.specs || []).map(s => `${s.classSlug}/${s.specSlug}`));
+}
+
+// ============================================================
+// 初始化下拉框
+// ============================================================
+function populateClasses() {
+  const prev = selClass.value || 'druid';
+  selClass.innerHTML = CLASSES.map(c => {
+    const hasAny = c.specs.some(s => availableSpecs.has(`${c.slug}/${s.slug}`));
+    const cls = hasAny ? '' : ' class="unavailable"';
+    return `<option value="${c.slug}"${cls}>${localizedName(c.name)}${hasAny ? '' : t('spec.unavailable')}</option>`;
+  }).join('');
+  selClass.value = prev;
+  // 选中职业可能因 prev 找不到而落空，回退到第一个有数据的
+  if (!selClass.value) selClass.value = CLASSES.find(c => c.specs.some(s => availableSpecs.has(`${c.slug}/${s.slug}`)))?.slug || CLASSES[0].slug;
+  const prevSpec = selSpec.value || 'guardian';
+  populateSpecs();
+  selSpec.value = prevSpec;
+  if (!selSpec.value || !availableSpecs.has(`${selClass.value}/${selSpec.value}`)) {
+    const cls = CLASSES.find(c => c.slug === selClass.value);
+    selSpec.value = cls.specs.find(s => availableSpecs.has(`${cls.slug}/${s.slug}`))?.slug || cls.specs[0].slug;
+  }
+}
+function populateSpecs() {
+  const cls = CLASSES.find(c => c.slug === selClass.value);
+  selSpec.innerHTML = cls.specs.map(s => {
+    const has = availableSpecs.has(`${cls.slug}/${s.slug}`);
+    return `<option value="${s.slug}"${has ? '' : ' disabled'}>${localizedName(s.name)} (${roleLabel(s.role)})${has ? '' : t('spec.unavailable')}</option>`;
+  }).join('');
+}
+selClass.addEventListener('change', () => { populateSpecs(); loadCurrentSpec(); });
+
+function setStatus(text) {
+  statusEl.textContent = text || '';
+}
+
+// ============================================================
+// 渲染
+// ============================================================
+// 保留最近一次成功渲染的数据，供语言切换 / 模式切换无需重抓
+let lastRender = null;
+
+function render(specPayload) {
+  lastRender = specPayload;
+  if (!specPayload) {
+    resultsEl.className = '';
+    resultsEl.innerHTML = `<div class="empty">${t('meta.noBuild')}</div>`;
+    metaEl.textContent = '';
+    return;
+  }
+
+  metaEl.innerHTML = '';
+  const ts = new Date(specPayload.fetchedAt).toLocaleString();
+  const ageH = Math.round((Date.now() - specPayload.fetchedAt) / 3600000);
+  const ageStr = ageH > 0 ? t('meta.age', { n: ageH }) : '';
+  metaEl.innerHTML = t('meta.sample', {
+    n: specPayload.sampleSize,
+    label: currentSpecLabel(),
+    region: (specPayload.region || '').toUpperCase(),
+    season: specPayload.season,
+    ts,
+    age: ageStr,
+  });
+
+  const mode = selMode.value;
+  const slotMaps = specPayload[mode] || specPayload.byItem;
+  resultsEl.className = 'slot-grid';
+  resultsEl.removeAttribute('data-i18n');
+  resultsEl.innerHTML = SLOT_ORDER.map(([slot, label]) => renderSlot(slot, localizedName(label), slotMaps[slot], specPayload.sampleSize, mode)).join('');
+
+  if (window.$WowheadPower && window.$WowheadPower.refreshLinks) window.$WowheadPower.refreshLinks();
+}
+
+function renderSlot(slot, labelText, items, sampleSize, mode) {
+  if (!items || items.length === 0) {
+    return `<section class="slot"><h3 class="slot-title">${escapeHtml(labelText)} <span class="count">${t('slot.noData')}</span></h3></section>`;
+  }
+  const totalSlots = sampleSize * slotsPerChar(slot);  // 戒指/饰品 = 2× 人数
+  const top = items.slice(0, 15);
+  const rows = top.map(it => {
+    const pct = (it.count / totalSlots) * 100;
+    const iconUrl = it.icon ? `https://render.worldofwarcraft.com/icons/56/${it.icon}.jpg` : '';
+    const wowheadParams = [`item=${it.item_id}`];
+    if (it.bonuses && it.bonuses.length) wowheadParams.push(`bonus=${it.bonuses.join(':')}`);
+    const wowhead = `https://www.wowhead.com/${wowheadParams.join('&')}`;
+    const variantBadge = mode === 'byVariant' && it.variant
+      ? `<span class="variant" title="bonuses hash · same tag = same variant">#${it.variant}</span>` : '';
+    const displayName = itemDisplayName(it);
+    return `
+      <tr>
+        <td style="width:36px"><img class="icon" loading="lazy" src="${iconUrl}" alt=""></td>
+        <td>
+          <a class="item-name" href="${wowhead}" target="_blank" rel="noopener" data-wowhead="${wowheadParams.join('&')}">${escapeHtml(displayName)}</a>
+          ${it.item_level ? `<span class="ilvl">i${it.item_level}</span>` : ''}
+          ${variantBadge}
+        </td>
+        <td class="pct-bar-cell">
+          <div class="pct-bar-bg"><div class="pct-bar-fill" style="width:${pct.toFixed(1)}%"></div></div>
+        </td>
+        <td class="pct">${pct.toFixed(1)}%<span class="raw">${it.count}/${totalSlots}</span></td>
+      </tr>`;
+  }).join('');
+  const overflowKey = mode === 'byVariant' ? 'slot.overflowVariants' : 'slot.overflowItems';
+  const extra = items.length > 15 ? `<div style="color:var(--muted);font-size:11px;padding:4px 6px">${t(overflowKey, { n: items.length - 15 })}</div>` : '';
+  const countKey = mode === 'byVariant' ? 'slot.countVariants' : 'slot.countItems';
+  return `
+    <section class="slot">
+      <h3 class="slot-title">${escapeHtml(labelText)} <span class="count">${t(countKey, { n: items.length, s: totalSlots })}</span></h3>
+      <table>${rows}</table>
+      ${extra}
+    </section>`;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// ============================================================
+// 主流程：读静态 JSON
+// ============================================================
+function currentSpecLabel() {
+  const cls = CLASSES.find(c => c.slug === selClass.value);
+  const spec = cls?.specs.find(s => s.slug === selSpec.value);
+  if (!cls || !spec) return '';
+  return `${localizedName(cls.name)} · ${localizedName(spec.name)}`;
+}
+
+const specCache = new Map();   // class/spec -> payload，避免重复 fetch
+
+async function loadCurrentSpec() {
+  const key = `${selClass.value}/${selSpec.value}`;
+  if (!availableSpecs.has(key)) {
+    setStatus(t('status.noSpecData'));
+    render(null);
+    return;
+  }
+  setStatus(t('status.loadSpec', { label: currentSpecLabel() }));
+  try {
+    let payload = specCache.get(key);
+    if (!payload) {
+      const file = (dataIndex.specs.find(s => `${s.classSlug}/${s.specSlug}` === key) || {}).file || `${selClass.value}__${selSpec.value}.json`;
+      const r = await fetch(`${DATA_DIR}/${file}`);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      payload = await r.json();
+      specCache.set(key, payload);
+    }
+    render(payload);
+    setStatus('');
+  } catch (e) {
+    console.error(e);
+    setStatus(t('status.error', { m: e.message }));
+    render(null);
+  }
+}
+
+selSpec.addEventListener('change', loadCurrentSpec);
+selMode.addEventListener('change', () => { if (lastRender) render(lastRender); });
+
+// 语言切换：不重新 fetch 任何专精数据，只重渲染（必要时拉 names.cn.json）
+async function setLang(lang) {
+  if (lang === LANG) return;
+  LANG = lang;
+  localStorage.setItem('wtw:lang', lang);
+  if (lang === 'cn') await loadCnNames();
+  applyI18n();
+  populateClasses();
+  window.dispatchEvent(new Event('wtw:langchange'));
+  if (lastRender) render(lastRender);
+}
+btnLangCn.addEventListener('click', () => setLang('cn'));
+btnLangEn.addEventListener('click', () => setLang('en'));
+
+// 启动
+async function init() {
+  applyI18n();
+  if (IS_FILE_PROTOCOL) return;
+  try {
+    if (LANG === 'cn') await loadCnNames();
+    await loadIndex();
+    populateClasses();
+    await loadCurrentSpec();
+  } catch (e) {
+    console.error(e);
+    setStatus(t('status.error', { m: e.message }));
+    resultsEl.innerHTML = `<div class="empty error" style="max-width:600px;margin:40px auto">${t('meta.noBuild')}</div>`;
+  }
+}
+init();
+
+// Wowhead 工具提示（在线时点击物品名 hover 有图片化 tooltip；离线无害）
+(function() {
+  const s = document.createElement('script');
+  s.src = 'https://wow.zamimg.com/widgets/power.js';
+  s.async = true;
+  document.head.appendChild(s);
+})();
+</script>
+</body>
+</html>
